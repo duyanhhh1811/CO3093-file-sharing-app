@@ -132,7 +132,7 @@ class ServerUI(customtkinter.CTk):
                                         )
         delete_button.grid(row=row, column=3, padx=10, pady=(0, 20))
     
-    def reload_server(self):
+    def reload_server(self, username):
         for widget in self.scrollable_clients_frame.winfo_children():
             if widget.winfo_children(): widget.destroy()
 
