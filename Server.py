@@ -12,12 +12,13 @@ customtkinter.set_default_color_theme("dark-blue")
 class ClientFilesList(customtkinter.CTkToplevel):
     def __init__(self, master, username, *args, **kwargs):
         super().__init__(master, *args, **kwargs)
+        print("\nat Client Files List")
         self.username = username
         self.geometry("600x300")
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
-        self.scrollable_files_frame = customtkinter.CTkScrollableFrame(self, label_text="List of Files")
+        self.scrollable_files_frame = customtkinter.CTkScrollableFrame(self, label_text=f"Repository of {username}")
         self.scrollable_files_frame.grid(row=0, column=0, rowspan=4, padx=(10, 0), pady=(10, 0), sticky="nsew")
         
         self.scrollable_clients_files = get_user_file(self.username)
@@ -30,7 +31,7 @@ class ClientFilesList(customtkinter.CTkToplevel):
 class ServerUI(customtkinter.CTk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs) # customtkinter.CTk.__init__(self, *args, **kwargs)
-        
+        print('\ninit at ServerUi')
         # Configure tilte and size of windows
         self.title("FILE SHARING APPLICATION")
         self.geometry(f"{1200}x{600}")
@@ -84,12 +85,14 @@ class ServerUI(customtkinter.CTk):
         self.main_button_1.grid(row=3, column=2, padx=(10, 10), pady=(20, 20), sticky="nsew")
 
     def delete_client(self, username):
-        response = tkinter.messagebox.askyesno("Xác nhận xoá", f"Bạn có chắc chắn muốn xoá client {username}?")
+        print(f'\nat delete client, username: {username}')
+        response = tkinter.messagebox.askyesno("Confirm Deletion", f"Are you want to delete {username}?")
         if response: 
             delete_user(username)
             self.reload_server()
 
     def create_client_row(self, username, row):
+        print(f'at create_client_row, username: {username}')
         client_label = customtkinter.CTkLabel(master=self.scrollable_clients_frame, text=username)
         client_label.grid(row=row, column=0, padx=10, pady=(0, 20), sticky="w")
         self.scrollable_clients_labels.append(client_label)
@@ -111,9 +114,9 @@ class ServerUI(customtkinter.CTk):
                                         master=self.scrollable_clients_frame, 
                                         text="View Repository", 
                                         command=lambda u=username: self.discover_client(u),
-                                        text_color="#0B6A9F",  # Set the text color to white (color X)
-                                        fg_color="#BFE3FE",  # Set the background color to red (color Y)
-                                        hover_color="#46A2E7",  # Optional: Change the hover color
+                                        text_color="#0B6A9F", 
+                                        fg_color="#BFE3FE",  
+                                        hover_color="#46A2E7",  
                                         width=120,
                                         height=30,
                                         corner_radius=10
@@ -123,16 +126,17 @@ class ServerUI(customtkinter.CTk):
         delete_button = customtkinter.CTkButton(master=self.scrollable_clients_frame,
                                         text='Delete Client',
                                         command=lambda u=username: self.delete_client(u),
-                                        text_color="#FFFFFF",  # Set the text color to white (color X)
-                                        fg_color="#FF6347",  # Set the background color to red (color Y)
-                                        hover_color="#FF0000",  # Optional: Change the hover color
+                                        text_color="#FFFFFF", 
+                                        fg_color="#FF6347",  
+                                        hover_color="#FF0000",  
                                         width=120,
                                         height=30,
                                         corner_radius=10
                                         )
         delete_button.grid(row=row, column=3, padx=10, pady=(0, 20))
     
-    def reload_server(self, username):
+    def reload_server(self):
+        print('\nat reload_server')
         for widget in self.scrollable_clients_frame.winfo_children():
             if widget.winfo_children(): widget.destroy()
 
@@ -155,29 +159,33 @@ class ServerUI(customtkinter.CTk):
 
     # Handle command of server (discover & ping)
     def command_line(self, command):
+        print('\nat command_line')
         parts = command.split()
-        error_message = "Lệnh không hợp lệ. Vui lòng nhập lại!"
+        error_message = "Syntax Error! Pleaser re-enter!"
         if len(parts) < 2:
             tkinter.messagebox.showinfo(error_message)
         
         elif parts[0] == "discover":
             if len(parts) == 2:
                 username = parts[1]
+                print('call discover_client')
                 self.discover_client(username)
             else:
-                tkinter.messagebox.showinfo("Thông Báo", error_message)
+                tkinter.messagebox.showinfo("Notification", error_message)
 
         elif parts[0] == "ping":
             if len(parts) == 2:
+                print('call ping_client')
                 username = parts[1]
                 self.ping_client(username)
             else:
-                tkinter.messagebox.showinfo("Thông Báo", error_message)
+                tkinter.messagebox.showinfo("Notification", error_message)
 
         else:
             tkinter.messagebox.showinfo(error_message)
 
     def discover_client(self,username):
+        print(f'at discover_client, username: {username}')
         self.files_list = get_user_file(username)
         if self.files_list is None or not isinstance(self.files_list, ClientFilesList):
             self.files_list = ClientFilesList(self, username)  # create window if its None or not a ClientFilesList
@@ -185,17 +193,19 @@ class ServerUI(customtkinter.CTk):
             self.files_list.focus() # if window exists focus it
 
     def ping_client(self, username):
+        print(f'at ping_client, username: {username}')
         onlineList = get_onl_users()
         if username in onlineList:
-            status_message = f"{username} đang online."
+            status_message = f"{username} is Online!"
         else:
-            status_message = f"{username} không trực tuyến."
-        tkinter.messagebox.showinfo("Trạng thái người dùng:", status_message)
+            status_message = f"{username} is Offline"
+        tkinter.messagebox.showinfo("Client status", status_message)
 
 
 class Server(Base):
-    def __init__(self, serverhost='localhost', serverport=40000):
+    def __init__(self, serverhost='192.168.3.140', serverport=40000):
         super(Server, self).__init__(serverhost, serverport)
+        print(f'init at Server: {serverhost}:{serverport}')
 
         # get registered user list
         self.peerList = get_all_users()
@@ -208,7 +218,7 @@ class Server(Base):
 
         # Delete data in table online
         delete_all_onl_users()
-
+        
         # define handlers for received message of central server
         handlers = {
             'PEER_REGISTER': self.peer_register,
@@ -229,13 +239,17 @@ class Server(Base):
         peer_port = msgdata['port']
         peer_password = msgdata['password']
         
+        print(f'\nat peer_register, msgdata: {msgdata}')
+        print(f'peer_name: {peer_name}\, peer_host: {peer_name}, peer_port: {peer_port}, peer_password: {peer_password}')
+        
         # register error if peer name has been existed in central server
-        # otherwise add peer to managed user list of central server
         if peer_name in self.peerList:
+            print(f'\nREGISTER ERROR: {peer_name} is in self.peerList')
             self.client_send((peer_host, peer_port),
                              msgtype='REGISTER_ERROR', msgdata={})
-            print(peer_name, " has been existed in central server!")
+            print(peer_name, " has been existed in server!")
         else:
+            print(f'\nREGISTER SUCCESS: {peer_name} is not in self.peerList')
             # add peer to managed user list
             self.peerList.append(peer_name)
             # save to database
@@ -255,9 +269,14 @@ class Server(Base):
         peer_password = msgdata['password']
         # login error if peer has not registered yet or password not match
         # otherwise add peer to online user list
+        
+        print(f'\nat peer_login, msgdata: {msgdata}')
+        print(f'peer_name: {peer_name}\, peer_host: {peer_name}, peer_port: {peer_port}, peer_password: {peer_password}')
+        
         if peer_name in self.peerList:
-            # retrieve password
-            peer_password_retrieved = get_user_password(peer_name)
+            print(f'\nLOGIN: {peer_name} is in self.peerList')
+            
+            peer_password_retrieved = get_user_password(peer_name) # retrieve password
             if str(peer_password) == peer_password_retrieved:
                 
                 # add peer to online user list
@@ -265,21 +284,19 @@ class Server(Base):
                 add_onl_user(peer_name)
                 self.client_send((peer_host, peer_port),
                                  msgtype='LOGIN_SUCCESS', msgdata={})
-
+                print(f"Login success! now {peer_name} is in online clients list")
                 # update ipaddress and port using by this peer
                 update_user_address_port(peer_name, peer_host, peer_port)
                 
-                # noti
-                print(peer_name, " has been added to central server's online user list!")
-
             else:
+                print(f"\nLOGIN ERROR: password of {peer_name} is not correct!")
                 self.client_send((peer_host, peer_port),
                                  msgtype='LOGIN_ERROR', msgdata={})
-                print("Password uncorrect!")
         else:
+            print(f"\nLOGIN ERROR: cannot find {peer_name} in server")
             self.client_send((peer_host, peer_port),
                              msgtype='LOGIN_ERROR', msgdata={})
-            print(peer_name, " has not been existed in central server!")
+            print(peer_name, " has not been existed in server!")
     ## ===========================================================##
 
     ## =========implement protocol for finding user list who have file searched==============##
@@ -288,30 +305,43 @@ class Server(Base):
         peer_host = msgdata['host']
         peer_port = msgdata['port']
         file_name = msgdata['filename']
+        
+        print(f'\nat peer_search, msgdata: {msgdata}')
+        print(f'peer_name: {peer_name}, peer_host: {peer_host}, peer_port: {peer_port}, file_name: {file_name}')
+        
         user_list = search_file_name(file_name)
 
         for peername in user_list:
             if peername in self.onlineList:
+                print(f"{peername} is online and have {file_name}")
                 self.shareList[peername] = self.onlineList[peername]
 
         data = {
             'online_user_list_have_file': self.shareList
         }
+        
+        print(f"data: {data}")
 
         self.client_send((peer_host, peer_port),
                          msgtype='LIST_USER_SHARE_FILE', msgdata=data)
-        print(peer_name, " has been sent latest online user list have file!")
+        print(peer_name, " has been sent latest online user list have file! (not DA)")
         self.shareList.clear()
 
     ## ================implement protocol for log out & exit=============##
     def peer_logout(self, msgdata):
         peer_name = msgdata['peername']
+        
+        print(f'\nat peer_logout, masgdata: {msgdata}')
+        print(f'peername: {peer_name}')
+        
         onlineList = get_onl_users()
+        
         # delete peer out of online user list 
         if peer_name in onlineList:
             onlineList.remove(peer_name)
             remove_onl_user(peer_name)
             # noti
+            print(f"LOGOUT: {peer_name} log out succeessfully")
             print(peer_name, " has been removed from central server's online user list!")
     ## ===========================================================##
 
@@ -320,6 +350,10 @@ class Server(Base):
         peer_name = msgdata['peername']
         file_name = msgdata['filename']
         file_path = msgdata['filepath']
+        
+        print('\nat peer_upload, msgdata: {msgdata}')
+        print(f'peer_name: {peer_name}, file_name: {file_name}, file_path: {file_path}')
+        
         add_new_file(peer_name, file_name, file_path)
     ## ===========================================================##
 
@@ -327,6 +361,10 @@ class Server(Base):
     def delete_file(self, msgdata):
         peer_name = msgdata['peername']
         file_name = msgdata['filename']
+        
+        print(f'\nat delete_file, msgdata: {msgdata}')
+        print(f'peer_name: {peer_name}, file_name: {file_name}')
+        
         delete_file(peer_name, file_name)
         print(f"{file_name} has been removed out of {peer_name}")
 

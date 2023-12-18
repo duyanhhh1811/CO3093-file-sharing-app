@@ -6,9 +6,10 @@ import shutil
 import socket
 import threading
 
-from Base import Base
 from persistence import *
  
+from Base import Base
+
 import tkinter as tk
 import tkinter.messagebox
 import tkinter.filedialog
@@ -33,7 +34,7 @@ class BaseClientUI(tk.Tk):
     def __init__(self, *args, **kwargs):
         # __init__ function for class Tk
         tk.Tk.__init__(self, *args, **kwargs)
-
+        print(f'\ninit at BaseClientUI')
         # creating a container
         container = tk.Frame(self)
         container.pack(side="top", fill="both", expand=True)
@@ -65,6 +66,7 @@ class StartPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         # set color mode
+        print(f'\nat StartPage')
         customtkinter.set_appearance_mode("light")
         customtkinter.set_default_color_theme("blue")
         # create title
@@ -118,15 +120,16 @@ class StartPage(tk.Frame):
         self.register_button.pack(padx=10, pady=10)
     
     def enter_app(self, controller, port, page):
+        print(f'\nat enter_app, controller: {controller}, port: {port}, page: {page}')
         try:
             # Get hostname of current peer
             hostname=socket.gethostname()   
             # Get IP address of current peer base on that hostname
             IPAddr=socket.gethostbyname(hostname)  
-
             # Init server
             global peer 
             peer = Client(serverhost=IPAddr, serverport=int(port))
+            print(f'\nglobal peer: {peer}')
            
             # Create a (daemon) child thread for receiving message
             recv_t = threading.Thread(target=peer.input_recv)
@@ -145,13 +148,15 @@ class StartPage(tk.Frame):
             
             # Move to another page: LoginPage or RegisterPage
             controller.show_frame(page)
-        except:
+        except Exception as e:
+            print(e)
             self.port_entry.delete(0, customtkinter.END)
             tkinter.messagebox.showinfo("Port Error!",  "The port is already in use or contains an empty value")
 
 class RegisterPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
+        print('\nat Register Page')
         customtkinter.set_appearance_mode("light")
         customtkinter.set_default_color_theme("blue")   
 
@@ -231,8 +236,9 @@ class RegisterPage(tk.Frame):
                                 ).grid(row=6, column=1, columnspan=2, pady=10, padx=10)
 
     def register_user(self, username, password):
+        print(f'\nat register_user, username: {username}, password: {password}')
         peer.name = str(username)
-        peer.password = str(password) # without hashing
+        peer.password = str(password)
         # delete content of Username and Password entries
         self.username_entry.delete(0, customtkinter.END)
         self.password_entry.delete(0, customtkinter.END)
@@ -242,6 +248,7 @@ class RegisterPage(tk.Frame):
 class LoginPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
+        print('\nat LoginPage')
         customtkinter.set_appearance_mode("light")
         customtkinter.set_default_color_theme("blue")   
 
@@ -334,8 +341,8 @@ class LoginPage(tk.Frame):
 class RepoPage(tk.Frame):
     def __init__(self, parent, **kwargs):
         tk.Frame.__init__(self, parent)
-        '''This class configures and populates the toplevel window.
-           top is the toplevel containing window.'''
+        
+        print('\nat RepoPage')
         
         # configure grid layout 
         self.grid_columnconfigure(1, weight=1)
@@ -508,28 +515,30 @@ class RepoPage(tk.Frame):
 
     # log out
     def logout_user(self):
+        print('\nat logout_user')
         peer.send_logout_request()
         app.show_frame(StartPage)
 
     # quit
     def quit_user(self):
+        print('\nat quit_user')
         peer.send_logout_request()
         app.destroy()
     
     def command_line(self, command):
+        print('at command_line')
         parts = command.split()
-        
+        message = "Error Syntax! Please Re-enter!"
         if parts[0] == "publish":
             if len(parts) == 3:
                 file_path = parts[1]
                 file_name = parts[2]
                 
                 peer.update_repo_to_server(file_name, file_path)
-                self.fileListBox.insert(0, file_name + " [" + file_path + "]")
+                self.fileListBox.insert(0, file_name + "::[" + file_path + "]")
                 self.add_to_repo(file_path)
                 
             else:
-                message = "Lệnh không hợp lệ vui lòng nhập lại!"
                 tkinter.messagebox.showinfo(message)
                 
         elif parts[0] == "fetch":
@@ -540,14 +549,13 @@ class RepoPage(tk.Frame):
                 peer_info = self.peerListBox.get(0)
                 peer.send_request(peer_info, file_name)
             else:
-                message = "Lệnh không hợp lệ vui lòng nhập lại!"
                 tkinter.messagebox.showinfo(message)
         else:
-            message = "Lệnh không hợp lệ vui lòng nhập lại!"
             tkinter.messagebox.showinfo(message)
 
     # this method is to publish a file into repo
     def add_to_repo(self, file_path):
+        print(f'\nat add_to_repo, file_path: {file_path}')
         # create a folder named "repo" in this folder
         if not os.path.exists("local-repo"):
             os.makedirs("local-repo")
@@ -556,22 +564,29 @@ class RepoPage(tk.Frame):
 
     # this method is to choose file from your local computer
     def choose_file_to_publish(self):
+        print('\nat choose_file_to_publish')
         file_path = tkinter.filedialog.askopenfilename()
+        print('file_path: {file_path}')
         msg_box = tkinter.messagebox.askquestion('Confirmation', 'Upload "{}" to local repository?'.format(file_path),
                                                  icon="question")
         if msg_box == 'yes':
             file_name = simpledialog.askstring('Input','Choose your file name after publishing to your repository',parent = self)
+            print(f'file_name: {file_name}')
             peer.update_repo_to_server(file_name, file_path)
             self.fileListBox.insert(0, file_name + "::[" + file_path + "]")
             self.add_to_repo(file_path)
             
     def send_connection_request(self):
+        print('\nat send_connection_request')
         peer_info = self.peerListBox.get(tk.ANCHOR) 
         file_name = self.search_entry.get()
+        print(f'peer_info: {peer_info}, file_name: {file_name}')
         peer.send_request(peer_info, file_name)
 
     def add_to_repo_from_fetch(self, file_name, file_name_server):
+        print(f'\n at add_to_repo_from_fetch, file_name: {file_name}, file_name_server: {file_name_server}')
         file_path = os.path.join(os.getcwd(), file_name)
+        print(f'file_path: {file_path}')
         if not os.path.exists("local-repo"):
             os.makedirs("local-repo")
         destination = os.path.join(os.getcwd(), "local-repo")
@@ -580,13 +595,17 @@ class RepoPage(tk.Frame):
         peer.update_repo_to_server(file_name_server, file_path)
 
     def delete_file_from_repo(self):
+        print(f'\ndelete_file_from_repo')
         file_name_and_path = self.fileListBox.get(tk.ANCHOR)
         repo_file_name = file_name_and_path.split("::")[0]
+        print(f'file_name_and_path: {file_name_and_path}')
+        print(f'repo_file_name: {repo_file_name}')
         self.fileListBox.delete(tk.ANCHOR)
         
         path_name = file_name_and_path.split("::")[1][1:-1]
+        print(f'path_name: {path_name}')
         actual_file_name = path_name.split("/")[-1]
-        print(actual_file_name)
+        print(f'actual_file_name: {actual_file_name}')
         
         repo_path = os.path.join(os.getcwd(), "local-repo")
         target_file = os.path.join(repo_path, actual_file_name)
@@ -599,11 +618,14 @@ class RepoPage(tk.Frame):
         peer.delete_file_at_server(repo_file_name)
 
     def find_file_from_user(self):
+        print(f'\nat find_file_from_user')
         file_name = self.search_entry.get()
+        print(f'file_name: {file_name}')
         self.peerListBox.delete(0, tk.END)
         peer.send_listpeer(file_name)
 
     def reload_repo(self):
+        print(f'\nat reload_repo')
         for file in self.fileListBox.get(0, tk.END):
             self.fileListBox.delete(0, tk.END)
         peer.reload_client_repo_list()
@@ -620,7 +642,9 @@ class RepoPage(tk.Frame):
 class Client(Base):
     def __init__(self, serverhost='localhost', serverport=30000, server_info=('192.168.3.140', 40000)):
         super(Client, self).__init__(serverhost, serverport)
-
+        
+        print(f'\ninit at Client, serverhost: {serverhost}, serverport: {serverport}, serverinfo: {server_info}')
+        
         # init host and port of central server
         self.server_info = server_info
 
@@ -655,76 +679,88 @@ class Client(Base):
 
     ## ==========implement protocol for user registration - network peer==========##
     def send_register(self):
-        """ Send a request to server to register peer's information. """
+        print(f'\nat send_register')
         peer_info = {
             'peername': self.name,
             'password': self.password,
             'host': self.serverhost,
             'port': self.serverport
         }
+        print(f'peer_info: {peer_info}')
         self.client_send(self.server_info,
                          msgtype='PEER_REGISTER', msgdata=peer_info)
 
     def register_success(self, msgdata):
-        """ Processing received message from server: Successful registration on the server. """
-        display_noti('Register Noti', 'Đăng ký thành công')
-        print('Register Successful.')
+        print(f'\nat register_sucess, msgdata: {msgdata}')
+        display_noti('Register Notification', 'Register Successfully!')
 
     def register_error(self, msgdata):
-        """ Processing received message from server: Registration failed on the server. """
-        display_noti('Register Noti',
-                     'Đăng ký thất bại. Tên đăng nhập đã tồn tại hoặc không hợp lệ!')
-        print('Register Error. Username existed. Login!')
+        print(f'at register_error, msgdata: {msgdata}')
+        display_noti('Register Notification', 'Register Failed! Username already exists or is invalid!')
     ## ===========================================================##
 
     ## ==========implement protocol for authentication (log in) - network peer==========##
     def send_login(self):
-        """ Send a request to server to login. """
+        print(f'\nat send_login')
         peer_info = {
             'peername': self.name,
             'password': self.password,
             'host': self.serverhost,
             'port': self.serverport
         }
+        print(f'peer_info: {peer_info}')
         self.client_send(self.server_info,
                          msgtype='PEER_LOGIN', msgdata=peer_info)
 
     def login_success(self, msgdata):
-        """ Processing received message from server: Successful login on the server. """
-        print('Login Successful.')
-        display_noti('Login Noti', 'Login Successful.')
+        print(f'\nat login_success, msgdata: {msgdata}')
+        display_noti('Login Notification', 'Login Successfully!')
         app.geometry("1100x600")
         app.resizable(False, False)
         app.show_frame(RepoPage)
 
     def login_error(self, msgdata):
-        """ Processing received message from server: Login failed on the server. """
-        display_noti('Login Noti', 'Login Error. Username not existed!')
-        print('Login Error. Username not existed or wrong password')
+        print(f'\nlogin_error, msgdata: {msgdata}')
+        display_noti('Login Notification', 'Login Failed. Username does not exist!')
     ## ===========================================================##
 
     ## ==========implement protocol for getting online user list who have file that client find==========##
     def send_listpeer(self, filename):
-        """ Send a request to server to get all online peers who have file that client find. """
+        print(f'\nat send_listpeer, filename: {filename}')
         peer_info = {
             'peername': self.name,
             'host': self.serverhost,
             'port': self.serverport,
             'filename': filename
         }
+        print(f'peer_info: {peer_info}')
         self.client_send(self.server_info,
                          msgtype='PEER_SEARCH', msgdata=peer_info)
         
     def get_users_share_file(self, msgdata):
+        print(f'\nat get_user_share_file, msgdata: {msgdata}')
         shareList = msgdata['online_user_list_have_file']
+        
+        for i in range(i, len(shareList)):
+            print(f'shareList[{i}]:{shareList[i]}')
+        
         for peername, data in shareList.items():
             peer_host, peer_port = data
             info = str(peer_host) + ',' + str(peer_port)
             app.frames[RepoPage].peerListBox.insert(0, info)
 
     def reload_client_repo_list(self):
+        print('\nat reload_client_repo_list')
         fileList = get_user_file(self.name)
         pathList = get_user_path(self.name)
+        
+        print(fileList)
+        for file in fileList:
+            print(file)
+        
+        for path in pathList:
+            print(path)
+        
         for i in range(0, len(fileList)): 
             res = fileList[i] + '::[' + pathList[i] + ']'
             app.frames[RepoPage].fileListBox.insert(0, res)
@@ -732,9 +768,10 @@ class Client(Base):
 
     ## ==========implement protocol for file request==========##
     def send_request(self, peerinfo, filename):
-        """ Send a file request to an online user. """
+        print(f'\nat send_request, peerinfo: {peerinfo}, filename: {filename}')
         peerhost, peerport = peerinfo.split(',')
         peer = (peerhost, int(peerport))
+        print(f'peer: {peer}')
         data = {
             'peername': self.name,
             'host': self.serverhost,
@@ -746,11 +783,14 @@ class Client(Base):
 
     ##=====NEED MODIFY: Hàm này dùng để hiển thị có yêu cầu chia sẻ file để người dùng chọn đồng ý hoặc không====#
     def file_request(self, msgdata):
-        """ Processing received file request message from peer. """
+        print(f'\nat file_request, msgdata: {msgdata}')
         peername = msgdata['peername']
-        host, port = msgdata['host'], msgdata['port']
+        host = msgdata['host']
+        port = msgdata['port']
         filename = msgdata['filename']
-        msg_box = tkinter.messagebox.askquestion('File Request', '{} - {}:{} request to take the file "{}"?'.format(peername, host, port, filename),
+        
+        print(f'peername: {peername}, host: {host}, port: {port}, filename: {filename}')
+        msg_box = tkinter.messagebox.askquestion('File Request', '{} - {}:{} request to take file "{}" from your repository?'.format(peername, host, port, filename),
                                             icon="question")
         if msg_box == 'yes':
             # if request is agreed, connect to peer (add to friendlist)
@@ -759,14 +799,14 @@ class Client(Base):
                 'host': self.serverhost,
                 'port': self.serverport
             }
+            print(f'FILE_ACCEPT, data: {data}')
             self.client_send((host, port), msgtype='FILE_ACCEPT', msgdata=data)
-            display_noti("File Request Accepted",
-                         "Send The File!")
+            display_noti("File Request Accepted","Send The File!")
             self.friendlist[peername] = (host, port)
             destination = os.path.join(os.getcwd(), "local-repo")
             file_path = tkinter.filedialog.askopenfilename(initialdir=destination)
             file_name = os.path.basename(file_path)
-            msg_box = tkinter.messagebox.askquestion('File Explorer', 'Are you sure to send {} to {}?'.format(file_name, peername),
+            msg_box = tkinter.messagebox.askquestion('File Explorer', 'Are you sure to send file "{}" to {}?'.format(file_name, peername),
                                                  icon="question")
             if msg_box == 'yes':
                 sf_t = threading.Thread(
@@ -776,43 +816,34 @@ class Client(Base):
                 tkinter.messagebox.showinfo(
                     "File Transfer", '{} has been sent to {}!'.format(file_name, peername))
             else:
+                print(f'FILE_REFUSE')
                 self.client_send((host, port), msgtype='FILE_REFUSE', msgdata={})
 
     #=======Hàm này dùng để chuyển file cho máy khách sau khi đã chọn đồng ý=======#
     def file_accept(self, msgdata):
-        """ Processing received accept file request message from peer.
-            Add the peer to collection of friends. """
+        print(f'\nat file_accept, msgdata: {msgdata}')
         peername = msgdata['peername']
         host = msgdata['host']
         port = msgdata['port']
-        display_noti("File Request Result",
-                     "Accepted")
+        print(f'peername: {peername}, host: {host}, port: {port}')
+        display_noti("File Request Result", "Accepted")
         self.friendlist[peername] = (host, port)
 
     def file_refuse(self, msgdata):
-        """ Processing received refuse chat request message from peer. """
+        print('\nat file_refuse')
         display_noti("File Request Result", 'FILE REFUSED!')
-    ## ===========================================================##
-    
-    # def recv_public_message(self, msgdata):
-    #     """ Processing received public chat message from central server."""
-    #     # insert messages to text box
-    #     message = msgdata['name'] + ": " + msgdata['message']
-    #     app.chatroom_textCons.config(state=tkinter.NORMAL)
-    #     app.chatroom_textCons.insert(tkinter.END, message+"\n\n")
-    #     app.chatroom_textCons.config(state=tkinter.DISABLED)
-    #     app.chatroom_textCons.see(tkinter.END)
     ## ===========================================================##
 
     ## ==========implement protocol for file tranfering==========##
     def transfer_file(self, peer, file_path, file_name_server):
-        """ Transfer a file. """
+        print(f'\nat transfer_file, peer: {peer}, file_path: {file_path}, file_name_server: {file_name_server}')
         try:
             peer_info = self.friendlist[peer]
         except KeyError:
-            display_noti("File Transfer Result", 'Friend does not exist!')
+            display_noti("File Transfer Result", 'Peer does not exist!')
         else:
             file_name = os.path.basename(file_path)
+            print(f'file_name: {file_name}')
             def fileThread(filename):
                 file_sent = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 file_sent.connect((peer_info[0], peer_info[1]+OFFSET))
@@ -824,11 +855,13 @@ class Client(Base):
                     'filenameserver': file_name_server,
                 }
 
+                print(f'fileInfo: {fileInfo}')
+                
                 fileInfo = json.dumps(fileInfo).encode(FORMAT)
                 file_sent.send(fileInfo)
                 
                 msg = file_sent.recv(BUFFER_SIZE).decode(FORMAT)
-                print(msg)
+                print(f'msg: {msg}')
 
                 with open(file_path, "rb") as f:
                     while True:
@@ -847,6 +880,7 @@ class Client(Base):
 
     def recv_file_content(self):
         """ Processing received file content from peer."""
+        print('\nat recv_file_content')
         self.file_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # bind the socket to our local address
         self.file_socket.bind((self.serverhost, int(self.serverport) + OFFSET))
@@ -887,27 +921,29 @@ class Client(Base):
     ## ==========implement protocol for log out & exit ===================##
 
     def send_logout_request(self):
-        """ Central Server deletes user out of online user list """
+        print('\nat send_logout_request')
         peer_info = {
             'peername': self.name,
         }
+        print(f'peer_info: {peer_info}')
         self.client_send(self.server_info,
                          msgtype='PEER_LOGOUT', msgdata=peer_info)
 
     ## ===========================================================##
     def delete_file_at_server(self,file_name):
-        """ Delete file from server. """
+        print(f'\nat delete_file_at_server, file_name: {file_name}')
         peer_info = {
             'peername': self.name,
             'host': self.serverhost,
             'port': self.serverport,
             'filename': file_name
         }
+        print(f'peer_info: {peer_info}')
         self.client_send(self.server_info,
                          msgtype='DELETE_FILE', msgdata=peer_info)
         
     def update_repo_to_server(self, file_name, file_path):
-        """ Upload repo to server. """
+        print(f'\nat update_repo_to_server, file_name: {file_name}, file_path: {file_path}')
         peer_info = {
             'peername': self.name,
             'host': self.serverhost,
@@ -915,6 +951,7 @@ class Client(Base):
             'filename': file_name,
             'filepath': file_path
         }
+        print(f'peer_info: {peer_info}')
         self.client_send(self.server_info,
                          msgtype='FILE_REPO', msgdata=peer_info)
     

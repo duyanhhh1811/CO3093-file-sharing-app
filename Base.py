@@ -9,11 +9,14 @@ FORMAT = "utf-8"
 BUFFER_SIZE = 2048
 
 class Base():
-    def __init__(self, serverhost='localhost', serverport=10000, listen_num=100):
+    def __init__(self, serverhost='192.168.3.140', serverport=40000, listen_num=100):
         # host and listening port of network peers/central server
         hostname = socket.gethostname()   
         self.serverhost = socket.gethostbyname(hostname)  
         self.serverport = int(serverport)
+        
+        print(f'\ninit at Base: serverhost: {serverhost}, serverport: {serverport}')
+        print(f"self.serverhost: {self.serverhost}, self.serverport:{self.serverport}")
         
         # create server TCP socket (for listening)
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -30,11 +33,13 @@ class Base():
 
     def add_handler(self, msgtype, function): 
         self.handlers[msgtype] = function
+        #print(f'\n{self.handlers}, msgtype: {msgtype}, function: {function}, self.handlers[msgtype]: {self.handlers[msgtype]}')
 
     def function_mapper(self, message):
-        type_ = message['msgtype']
-        data_ = message['msgdata']
-        self.handlers[type_](data_)
+        _type = message['msgtype']
+        _data = message['msgdata']
+        self.handlers[_type](_data)
+        print(f'\nat function_mapper, message: {message}, self.handlers[_type](_data): {self.handlers[_type](_data)}')
 
     def recv_input_stream(self, conn):
         # receive from client 
@@ -43,6 +48,7 @@ class Base():
         # deserialize (json type -> python type)
         message = json.loads(message)
         # map into function
+        print(f'\nat recv_input_stream, message: {message}, conn: {conn}')
         self.function_mapper(message)
 
     def input_recv(self):
@@ -65,14 +71,21 @@ class Base():
         # serialize into JSON file for transmitting over network
         message = json.dumps(message).encode(FORMAT)
         # create client TCP socket
+        
+        print('\nat client_send:')
+        print(f'address: {address}, msgtype: {msgtype}, msgdata: {msgdata}')
+        print(f'message: {message}')
+        
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             # request connection
             s.connect(address)
-        except ConnectionRefusedError:
+        except ConnectionRefusedError as e:
+            print(e)
             print('Connection Error: Your Peer Refused')
             raise
         else:
             s.sendall(message)
         finally:
             s.close()
+        # s.connect(address)
