@@ -1,7 +1,7 @@
 from threading import Thread
 
-from Base import Base
-from persistence import *
+from Base import Base, get_current_IP_address
+from db_queries import *
 
 import customtkinter
 import tkinter.messagebox
@@ -132,7 +132,7 @@ class ServerUI(customtkinter.CTk):
                                         )
         delete_button.grid(row=row, column=3, padx=10, pady=(0, 20))
     
-    def reload_server(self, username):
+    def reload_server(self):
         for widget in self.scrollable_clients_frame.winfo_children():
             if widget.winfo_children(): widget.destroy()
 
@@ -194,9 +194,12 @@ class ServerUI(customtkinter.CTk):
 
 
 class Server(Base):
-    def __init__(self, serverhost='localhost', serverport=40000):
-        super(Server, self).__init__(serverhost, serverport)
+    def __init__(self):
+        current_IP_address = get_current_IP_address()
+        super(Server, self).__init__(serverhost=current_IP_address, serverport=65432)
 
+        print(f"Server at {self.serverhost}:{self.serverport}")
+        
         # get registered user list
         self.peerList = get_all_users()
 

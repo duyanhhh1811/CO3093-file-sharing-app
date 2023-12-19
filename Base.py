@@ -8,18 +8,22 @@ from abc import abstractmethod
 FORMAT = "utf-8"
 BUFFER_SIZE = 2048
 
-class Base():
-    def __init__(self, serverhost='localhost', serverport=10000, listen_num=100):
+def get_current_IP_address():
+    with open('Server_IP.txt', 'r') as file:
+        server_ip = file.read().strip()
+    return server_ip
+
+class Base:
+    def __init__(self, serverhost, serverport):
         # host and listening port of network peers/central server
-        hostname = socket.gethostname()   
-        self.serverhost = socket.gethostbyname(hostname)  
+        self.serverhost = serverhost
         self.serverport = int(serverport)
         
         # create server TCP socket (for listening)
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # bind the socket to our local address
         self.socket.bind((self.serverhost, self.serverport))
-        self.socket.listen(listen_num)
+        self.socket.listen(10)
         
         # peerlist: dict with key is peer name and value is tuple (host,port) 
         # Child class CentralServer: connected peers of a network peer

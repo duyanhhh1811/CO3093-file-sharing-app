@@ -6,8 +6,8 @@ import shutil
 import socket
 import threading
 
-from Base import Base
-from persistence import *
+from Base import Base, get_current_IP_address
+from db_queries import *
  
 import tkinter as tk
 import tkinter.messagebox
@@ -119,14 +119,9 @@ class StartPage(tk.Frame):
     
     def enter_app(self, controller, port, page):
         try:
-            # Get hostname of current peer
-            hostname=socket.gethostname()   
-            # Get IP address of current peer base on that hostname
-            IPAddr=socket.gethostbyname(hostname)  
-
             # Init server
             global peer 
-            peer = Client(serverhost=IPAddr, serverport=int(port))
+            peer = Client(clientport=int(port))
            
             # Create a (daemon) child thread for receiving message
             recv_t = threading.Thread(target=peer.input_recv)
@@ -618,8 +613,11 @@ class RepoPage(tk.Frame):
 # ------ end of GUI ------- #
 
 class Client(Base):
-    def __init__(self, serverhost='localhost', serverport=30000, server_info=('192.168.3.140', 40000)):
-        super(Client, self).__init__(serverhost, serverport)
+    def __init__(self, clientport, server_info=(get_current_IP_address(), 65432)):
+        current_IP_address = get_current_IP_address()
+        super(Client, self).__init__(serverhost=current_IP_address, serverport=clientport)
+
+        print(f"Client at {self.serverhost}:{self.serverport}")
 
         # init host and port of central server
         self.server_info = server_info
